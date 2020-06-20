@@ -226,8 +226,8 @@ object CourseMetricsJob extends optional.Application with IJob with ReportGenera
   }
 
   def getReportDF(batch: CourseBatch, userDF: DataFrame, loadData: (SparkSession, Map[String, String]) => DataFrame)(implicit spark: SparkSession): DataFrame = {
-
     JobLogger.log("Creating report for batch " + batch.batchid, None, INFO)
+
     val userCourseDenormDF = loadData(spark, Map("table" -> "user_courses", "keyspace" -> sunbirdCoursesKeyspace))
       .select(col("batchid"), col("userid"), col("courseid"), col("active"), col("certificates")
         , col("completionpercentage"), col("enrolleddate"), col("completedon"))
@@ -262,13 +262,14 @@ object CourseMetricsJob extends optional.Application with IJob with ReportGenera
         col("certificate_status"),
         col("course_channel")
       )
+
     // userCourseDenormDF lacks some of the user information that need to be part of the report here, it will add some more user details
     val reportDF = userCourseDenormDF
       .join(userDF, Seq("userid"), "inner")
-      .withColumn("resolved_externalid", when(userCourseDenormDF.col("course_channel") === userDF.col("channel"), userDF.col("declared-ext-id")).otherwise(""))
-      .withColumn("resolved_schoolname", when(userCourseDenormDF.col("course_channel") === userDF.col("channel"), userDF.col("declared-school-name")).otherwise(""))
-      .withColumn("resolved_blockname", when(userCourseDenormDF.col("course_channel") === userDF.col("channel"), userDF.col("block_name")).otherwise(""))
-      .withColumn("resolved_udisecode", when(userCourseDenormDF.col("course_channel") === userDF.col("channel"), userDF.col("declared-school-udise-code")).otherwise(""))
+      .withColumn("resolved_externalid", when(userCourseDenormDF.col("course_channel") === userDF.col("rootorgid"), userDF.col("declared-ext-id")).otherwise(""))
+      .withColumn("resolved_schoolname", when(userCourseDenormDF.col("course_channel") === userDF.col("rootorgid"), userDF.col("declared-school-name")).otherwise(""))
+      .withColumn("resolved_blockname", when(userCourseDenormDF.col("course_channel") === userDF.col("rootorgid"), userDF.col("block_name")).otherwise(""))
+      .withColumn("resolved_udisecode", when(userCourseDenormDF.col("course_channel") === userDF.col("rootorgid"), userDF.col("declared-school-udise-code")).otherwise(""))
       .select(
         userCourseDenormDF.col("*"),
         col("firstname"),
@@ -369,6 +370,7 @@ object CourseMetricsJob extends optional.Application with IJob with ReportGenera
   }
 
   def saveReportToBlobStore(batch: CourseBatch, reportDF: DataFrame, storageConfig: StorageConfig, totalRecords:Long): Unit = {
+
     reportDF
       .select(
         col("resolved_externalid").as("External ID"),

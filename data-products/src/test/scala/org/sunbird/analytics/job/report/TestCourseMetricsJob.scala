@@ -174,8 +174,8 @@ class TestCourseMetricsJob extends BaseReportSpec with MockFactory {
     val json: String =
       """
         |{
-        |    "identifier": "do_1127102863240151041169",
-        |    "channel": "apekx"
+        |    "identifier": "do_112673481360433152193",
+        |    "channel": "01250894314817126443"
         |  }
       """.stripMargin
 
@@ -197,7 +197,6 @@ class TestCourseMetricsJob extends BaseReportSpec with MockFactory {
   EmbeddedES.getAllDocuments("cbatch").foreach(f => {
     f.contains("reportUpdatedOn") should be (true)
     })
-
     val esOutput = JSONUtils.deserialize[ESOutput](EmbeddedES.getAllDocuments("cbatchstats-08-07-2018-16-30").head)
     esOutput.name should be ("Rajesh Kapoor")
     esOutput.id should be ("user012:1002")
